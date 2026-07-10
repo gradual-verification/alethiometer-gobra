@@ -1,0 +1,45 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
+    <id>edu.cmu.alethiometer</id>
+
+    <!-- Public plugin name should be written in Title Case.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
+    <name>C0 Gradual Verifier</name>
+
+    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
+    <vendor email="longtien@cs.cmu.edu" url="https://nguyen.bz">Long Tien Nguyen</vendor>
+
+    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
+         Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
+    <description><![CDATA[
+    C0 programming language, a subset of C used at CMU.
+  ]]></description>
+
+    <!-- Product and plugin compatibility requirements.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <applicationListeners>
+        <listener class="edu.cmu.alethiometer.reset.ResetListener" topic="com.intellij.openapi.command.CommandListener" />
+    </applicationListeners>
+
+    <!-- Extension points defined by the plugin.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
+    <extensions defaultExtensionNs="com.intellij">
+        <copyPastePreProcessor implementation="edu.cmu.alethiometer.reset.ResetPaste" />
+        <enterHandlerDelegate implementation="edu.cmu.alethiometer.reset.ResetEnter" />
+        <backspaceHandlerDelegate implementation="edu.cmu.alethiometer.reset.ResetBackspace" />
+    </extensions>
+    <actions>
+        <action class="edu.cmu.alethiometer.action.ActionReset" id="edu.cmu.alethiometer.action.ActionReset" text="Reset Verification">
+            <add-to-group anchor="last" group-id="BuildMenu" />
+            <keyboard-shortcut first-keystroke="ESCAPE" keymap="$default" />
+        </action>
+        <action class="edu.cmu.alethiometer.action.ActionVerifyInline" id="edu.cmu.alethiometer.action.ActionVerifyInline" text="Verify File Inline">
+            <add-to-group anchor="last" group-id="BuildMenu" />
+            <keyboard-shortcut first-keystroke="control alt I" keymap="$default" />
+        </action>
+    </actions>
+</idea-plugin>
