@@ -138,7 +138,7 @@ public class U {
         // all captured variables are read-only
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             // now in a background thread (BGT)
-            GobraRunner$.MODULE$.main(new String[]{ "-i", virtualFile.getPath() });
+            GobraRunner$.MODULE$.main(new String[]{ "--disablePureFunctsTerminationRequirement", "-i", virtualFile.getPath() });
             ApplicationManager.getApplication().invokeLater(() -> {
                 // back in the Event Dispatch Thread (EDT) again
                 final var inlayModel = editor.getInlayModel();
@@ -176,6 +176,9 @@ public class U {
                     if (symbExLogger instanceof MemberSymbExLog memberSymbExLog &&
                             SymbExLogger.m(symbExLogger) instanceof MethodRecord methodRecord &&
                             methodRecord.value().pos() instanceof TranslatedPosition pos) {
+                        if (!pos.file().getFileName().endsWith(virtualFile.getName())) {
+                            continue;
+                        }
                         memberSymbExLog.populateWhileLoops(methodRecord.value().bodyOrAssumeFalse().ss());
                         // find the longest line in method
                         var longest = 0;

@@ -5,7 +5,7 @@
 
     <!-- Public plugin name should be written in Title Case.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
-    <name>C0 Gradual Verifier</name>
+    <name>Alethiometer for Gobra</name>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
     <vendor email="longtien@cs.cmu.edu" url="https://nguyen.bz">Long Tien Nguyen</vendor>
@@ -14,7 +14,7 @@
          Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
     <description><![CDATA[
-    C0 programming language, a subset of C used at CMU.
+    Alethiometer verification debugger for Gobra.
   ]]></description>
 
     <!-- Product and plugin compatibility requirements.
