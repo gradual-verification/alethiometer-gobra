@@ -7,11 +7,14 @@ import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.ui.JBColor;
 import org.jetbrains.annotations.NotNull;
 import scala.collection.Seq;
+import scala.collection.immutable.ListSet;
+import scala.collection.immutable.ListSet$;
 import scala.jdk.javaapi.CollectionConverters;
 import viper.silicon.logger.MemberSymbExLog;
 import viper.silicon.logger.records.SymbolicRecord;
 import viper.silicon.logger.records.data.*;
 import viper.silicon.logger.records.structural.BranchingRecord;
+import viper.silicon.state.terms.Term;
 import viper.silver.ast.Not;
 import viper.silver.ast.TranslatedPosition;
 
@@ -43,7 +46,7 @@ public class Method {
         myPos = pos;
         myLongest = longest;
         myPaths = new ArrayList<>();
-        traverse(myLog, false, new HashMap<>(), new HashSet<>());
+        traverse(false, myLog, new HashMap<>(), new HashSet<>());
         myPathNumber = 0;
     }
 
@@ -57,8 +60,8 @@ public class Method {
         }
     }
 
-    public void traverse(Seq<SymbolicRecord> records,
-                         boolean ended,
+    public void traverse(boolean ended,
+                         Seq<SymbolicRecord> records,
                          Map<BranchingRecord, Boolean> forks,
                          Set<ExecuteRecord> statements) {
         for (final var record : CollectionConverters.asJava(records)) {
@@ -66,9 +69,9 @@ public class Method {
                 final var forks0 = new HashMap<>(forks);
                 final var forks1 = new HashMap<>(forks);
                 forks0.put(b, true);
-                traverse(b.getBranches().apply(0), ended, forks0, new HashSet<>(statements));
+                traverse(ended, b.getBranches().apply(0), forks0, new HashSet<>(statements));
                 forks1.put(b, false);
-                traverse(b.getBranches().apply(1), ended, forks1, new HashSet<>(statements));
+                traverse(ended, b.getBranches().apply(1), forks1, new HashSet<>(statements));
             } else if (record instanceof EndRecord) {
                 ended = true;
                 break;
@@ -88,7 +91,8 @@ public class Method {
         }
     }
 
-    public void renderInlays(Seq<SymbolicRecord> records,
+    public void renderInlays(ListSet<Term> previousPCs,
+                             Seq<SymbolicRecord> records,
                              @NotNull Editor editor) {
         final var document = editor.getDocument();
         final var inlayModel = editor.getInlayModel();
@@ -98,9 +102,9 @@ public class Method {
                     myPaths.get(myPathNumber).forks.containsKey(b)) {
 
                 if (myPaths.get(myPathNumber).forks.get(b)) {
-                    renderInlays(b.getBranches().apply(0), editor);
+                    renderInlays(previousPCs, b.getBranches().apply(0), editor);
                 } else {
-                    renderInlays(b.getBranches().apply(1), editor);
+                    renderInlays(previousPCs, b.getBranches().apply(1), editor);
                 }
 
             } else if (record instanceof ConditionalEdgeRecord c &&
@@ -120,7 +124,7 @@ public class Method {
             } else if (record instanceof EndRecord e) {
 
                 final var offset = document.getLineStartOffset(U.toIJ(myPos.end().get().line()));
-                final var renderer = new InlayBoxRenderer("end", myLongest, e.state(), e.pcs(), myMemberSymbExLog);
+                final var renderer = new InlayBoxRenderer("end", myLongest, e.state(), previousPCs, e.pcs(), myMemberSymbExLog);
                 inlayModel.addBlockElement(offset, false, false, 1, renderer);
 
             } else if (record instanceof ErrorRecord r &&
@@ -136,36 +140,39 @@ public class Method {
                 // Need to display state right before error happened as well
                 // This state is displayed below the error since the state
                 // of the last executed statement is displayed above
-                final var renderer = new InlayBoxRenderer("error", myLongest, r.state(), r.pcs(), myMemberSymbExLog);
+                final var renderer = new InlayBoxRenderer("error", myLongest, r.state(), previousPCs, r.pcs(), myMemberSymbExLog);
                 inlayModel.addBlockElement(offset0, false, false, 1, renderer);
 
             } else if (record instanceof ExecuteRecord x &&
                     x.value().pos() instanceof TranslatedPosition pos) {
 
                 final var offset = document.getLineStartOffset(U.toIJ(pos.line()));
-                final var renderer = new InlayBoxRenderer("", myLongest, x.state(), x.pcs(), myMemberSymbExLog);
-                inlayModel.addBlockElement(offset, false, true, 1, renderer);
+                final var renderer = new InlayBoxRenderer(x.id() + ": " + x.value().toString(), myLongest, x.state(), previousPCs, x.pcs(), myMemberSymbExLog);
+                inlayModel.addBlockElement(offset, false, true, x.id(), renderer);
+                previousPCs = x.pcs();
 
             } else if (record instanceof LoopInRecord i) {
 
                 final var pos = (TranslatedPosition) myMemberSymbExLog.whileLoops().get(i.value()).get().pos();
                 final var offset = document.getLineStartOffset(U.toIJ(pos.line()));
-                final var renderer = new InlayBoxRenderer("entering loop", myLongest, i.state(), i.pcs(), myMemberSymbExLog);
+                final var renderer = new InlayBoxRenderer("entering loop", myLongest, i.state(), previousPCs, i.pcs(), myMemberSymbExLog);
                 inlayModel.addBlockElement(offset, false, true, 1, renderer);
+                previousPCs = i.pcs();
 
             } else if (record instanceof LoopOutRecord o) {
 
                 final var pos = (TranslatedPosition) myMemberSymbExLog.whileLoops().get(o.value()).get().pos();
                 final var offset = document.getLineStartOffset(U.toIJ(pos.end().get().line()));
-                final var renderer = new InlayBoxRenderer("between iterations", myLongest, o.state(), o.pcs(), myMemberSymbExLog);
+                final var renderer = new InlayBoxRenderer("between iterations", myLongest, o.state(), previousPCs, o.pcs(), myMemberSymbExLog);
                 inlayModel.addBlockElement(offset, false, true, 1, renderer);
+                previousPCs = o.pcs();
             }
         }
     }
 
     public void renderInlays(@NotNull Editor editor) {
         if (!myPaths.isEmpty()) {
-            renderInlays(myLog, editor);
+            renderInlays(ListSet$.MODULE$.empty(), myLog, editor);
         }
     }
 }
