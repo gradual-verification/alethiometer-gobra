@@ -10,6 +10,7 @@ import scala.collection.Seq;
 import scala.collection.immutable.ListSet;
 import scala.collection.immutable.ListSet$;
 import scala.jdk.javaapi.CollectionConverters;
+import viper.gobra.reporting.BackTranslator;
 import viper.silicon.logger.MemberSymbExLog;
 import viper.silicon.logger.records.SymbolicRecord;
 import viper.silicon.logger.records.data.*;
@@ -75,7 +76,9 @@ public class Method {
             } else if (record instanceof EndRecord) {
                 ended = true;
                 break;
-            } else if (record instanceof ErrorRecord) {
+            } else if (record instanceof ErrorRecord r &&
+                    // check for spurious errors caused by unconsolidated heap incompleteness
+                    BackTranslator.verificationErrors().contains(r.error())) {
                 ended = true;
                 break;
             } else if (record instanceof LoopOutRecord ignored) {
@@ -128,6 +131,8 @@ public class Method {
                 inlayModel.addBlockElement(offset, false, false, 1, renderer);
 
             } else if (record instanceof ErrorRecord r &&
+                    // check for spurious errors caused by unconsolidated heap incompleteness
+                    BackTranslator.verificationErrors().contains(r.error()) &&
                     r.error().pos() instanceof TranslatedPosition pos) {
 
                 final var offset0 = document.getLineStartOffset(U.toIJ(pos.line())) + U.toIJ(pos.column());
